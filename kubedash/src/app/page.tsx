@@ -16,6 +16,8 @@ import {
   HardDrive,
   Activity,
   Cloud,
+  ArrowDownToLine,
+  ArrowUpToLine,
 } from "lucide-react";
 
 const serverDetails = {
@@ -165,11 +167,15 @@ export default function Component() {
   });
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date()); // Last update time initialized on page load
   const itemsPerPage = 10;
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const refreshData = () => {
     console.log("Refreshing data...");
     setLastUpdated(new Date());
-    window.location.reload();
+    // Check if `window` is defined to ensure this is running in the browser
+    if (typeof window !== "undefined") {
+      window.location.reload(); // Reload the page only on the client
+    }
   };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,20 +257,23 @@ export default function Component() {
     // Convert the data to a JSON string
     const jsonString = JSON.stringify(dataToSave, null, 2); // 2 spaces for pretty formatting
 
-    // Create a blob from the JSON string
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
+    // Check if `document` is available
+    if (typeof document !== "undefined") {
+      // Create a blob from the JSON string
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
 
-    // Create a timestamp for the file name
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-"); // Example: 2023-09-12T14-36-24
+      // Create a timestamp for the file name
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-"); // Example: 2023-09-12T14-36-24
 
-    // Create the download link with timestamped filename
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `kubernetes_manager_data_${timestamp}.json`; // Filename with timestamp
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Create the download link with timestamped filename
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `kubernetes_manager_data_${timestamp}.json`; // Filename with timestamp
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -277,10 +286,12 @@ export default function Component() {
               <Server className="h-6 w-6" /> Server Details
             </h2>
             <div className="flex items-center gap-4">
-              {/* Last Updated Time Display */}
-              <p className="text-sm text-gray-500">
-                Last updated: {lastUpdated.toLocaleTimeString()}
-              </p>
+              {/* Only show lastUpdated time after it's set on the client */}
+              {lastUpdated && (
+                <p className="text-sm text-gray-500">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </p>
+              )}
               <button
                 onClick={handleSaveData}
                 className="bg-blue-500 text-white px-4 py-2 rounded-md flex items-center gap-2"
@@ -299,97 +310,164 @@ export default function Component() {
             </div>
           </div>
 
-          {/* Server Info */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                <Server className="h-4 w-4" /> Name
-              </p>
-              <p className="text-lg font-semibold text-gray-800">
-                {serverDetails.name}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                <Activity className="h-4 w-4" /> Status
-              </p>
-              <span
-                className={`text-xs px-2 py-1 rounded-md ${
-                  serverDetails.status === "Running"
-                    ? "bg-green-100 text-green-600"
-                    : "bg-red-100 text-red-600"
-                }`}
-              >
-                {serverDetails.status}
-              </span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                <Power className="h-4 w-4" /> Uptime
-              </p>
-              <p className="text-lg font-semibold text-gray-800">
-                {serverDetails.uptime}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                <ArrowUpDown className="h-4 w-4" /> Version
-              </p>
-              <p className="text-lg font-semibold text-gray-800">
-                {serverDetails.version}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                <Server className="h-4 w-4" /> Nodes
-              </p>
-              <p className="text-lg font-semibold text-gray-800">
-                {serverDetails.nodes}
-              </p>
-            </div>
-          </div>
-
-          {/* Services Section */}
-          <div className="mt-6 bg-gray-100 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Activity className="h-5 w-5" /> Available Services
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {serverDetails.services.map((service, index) => (
-                <div
-                  key={index}
-                  className={`p-3 rounded-lg flex items-center justify-between ${
-                    service.status === "Up" ? "bg-green-100" : "bg-red-100"
+          {!isCollapsed && (
+            /* Server Info */
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Server className="h-4 w-4" /> Name
+                </p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {serverDetails.name}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Activity className="h-4 w-4" /> Status
+                </p>
+                <span
+                  className={`text-xs px-2 py-1 rounded-md ${
+                    serverDetails.status === "Running"
+                      ? "bg-green-100 text-green-600"
+                      : "bg-red-100 text-red-600"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <service.icon
-                      className={`h-5 w-5 ${
-                        service.status === "Up"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    />
-                    <span className="font-medium">{service.name}</span>
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-md ${
-                      service.status === "Up"
-                        ? "bg-green-100 text-green-600"
-                        : "bg-red-100 text-red-600"
+                  {serverDetails.status}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Power className="h-4 w-4" /> Uptime
+                </p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {serverDetails.uptime}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <ArrowUpDown className="h-4 w-4" /> Version
+                </p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {serverDetails.version}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Server className="h-4 w-4" /> Nodes
+                </p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {serverDetails.nodes}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Activity className="h-4 w-4" /> Status
+                </p>
+                <span
+                  className={`text-xs px-2 py-1 rounded-md ${
+                    serverDetails.status === "Running"
+                      ? "bg-green-100 text-green-600"
+                      : "bg-red-100 text-red-600"
+                  }`}
+                >
+                  {serverDetails.status}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Power className="h-4 w-4" /> Uptime
+                </p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {serverDetails.uptime}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <ArrowUpDown className="h-4 w-4" /> Version
+                </p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {serverDetails.version}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Server className="h-4 w-4" /> Nodes
+                </p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {serverDetails.nodes}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Server className="h-4 w-4" /> Nodes
+                </p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {serverDetails.nodes}
+                </p>
+              </div>
+            </div>
+          )}
+          {
+            !isCollapsed && (
+            /* Services Section */
+            <div className="mt-6 bg-gray-100 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <Activity className="h-5 w-5" /> Available Services
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {serverDetails.services.map((service, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 rounded-lg flex items-center justify-between ${
+                      service.status === "Up" ? "bg-green-100" : "bg-red-100"
                     }`}
                   >
-                    {service.status}
-                  </span>
-                </div>
-              ))}
+                    <div className="flex items-center gap-2">
+                      <service.icon
+                        className={`h-5 w-5 ${
+                          service.status === "Up"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      />
+                      <span className="font-medium">{service.name}</span>
+                    </div>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-md ${
+                        service.status === "Up"
+                          ? "bg-green-100 text-green-600"
+                          : "bg-red-100 text-red-600"
+                      }`}
+                    >
+                      {service.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+
+          <div className="mt-6">
+            <button
+              className="font-medium text-gray-600 text-sm hover:text-blue-500"
+              onClick={() => setIsCollapsed((prev) => !prev)}
+            >
+              {isCollapsed ? (
+                <span className="flex items-center gap-2">
+                  <ArrowDownToLine /> <span>Expand</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <ArrowUpToLine /> <span>Collapse</span>
+                </span>
+              )}
+            </button>
           </div>
         </div>
         {/* Worker Numbers Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center w-full mx-auto md:max-w-3xl">
           <div className="bg-green-100 p-4 rounded-lg shadow-md">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-4">
               <h4 className="text-sm font-medium text-green-800">
                 Running Workers
               </h4>
@@ -438,7 +516,7 @@ export default function Component() {
               onChange={handleFilterChange}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(100px,1fr))] max-w-3xl mx-auto gap-4 mb-6">
             {predefinedFilters.map((presetFilter, index) => (
               <button
                 key={index}
