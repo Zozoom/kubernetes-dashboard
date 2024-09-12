@@ -9,6 +9,7 @@ import {
   Power,
   Download,
   Database,
+  RefreshCw,
   Lock,
   ArrowUpDown,
   Cpu,
@@ -16,7 +17,6 @@ import {
   Activity,
   Cloud,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 
 const serverDetails = {
   name: "Production Cluster",
@@ -163,7 +163,14 @@ export default function Component() {
     key: null,
     direction: "asc",
   });
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date()); // Last update time initialized on page load
   const itemsPerPage = 10;
+
+  const refreshData = () => {
+    console.log("Refreshing data...");
+    setLastUpdated(new Date());
+    window.location.reload();
+  };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilter(e.target.value);
@@ -229,37 +236,35 @@ export default function Component() {
   };
 
   const handleSaveData = () => {
-    const workbook = XLSX.utils.book_new();
-
-    const serverDetailsSheet = XLSX.utils.json_to_sheet([
-      {
+    // Combine the data you want to save
+    const dataToSave = {
+      serverDetails: {
         ...serverDetails,
-        services: serverDetails.services
-          .map((s) => `${s.name}: ${s.status}`)
-          .join(", "),
+        services: serverDetails.services.map((s) => ({
+          name: s.name,
+          status: s.status,
+        })),
       },
-    ]);
-    XLSX.utils.book_append_sheet(
-      workbook,
-      serverDetailsSheet,
-      "Server Details"
-    );
+      pods: initialPods,
+    };
 
-    const workerNumbersSheet = XLSX.utils.json_to_sheet([statusCounts]);
-    XLSX.utils.book_append_sheet(
-      workbook,
-      workerNumbersSheet,
-      "Worker Numbers"
-    );
+    // Convert the data to a JSON string
+    const jsonString = JSON.stringify(dataToSave, null, 2); // 2 spaces for pretty formatting
 
-    const workerDetailsSheet = XLSX.utils.json_to_sheet(initialPods);
-    XLSX.utils.book_append_sheet(
-      workbook,
-      workerDetailsSheet,
-      "Worker Details"
-    );
+    // Create a blob from the JSON string
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
 
-    XLSX.writeFile(workbook, "kubernetes_manager_data.xlsx");
+    // Create a timestamp for the file name
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-"); // Example: 2023-09-12T14-36-24
+
+    // Create the download link with timestamped filename
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `kubernetes_manager_data_${timestamp}.json`; // Filename with timestamp
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -271,15 +276,31 @@ export default function Component() {
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <Server className="h-6 w-6" /> Server Details
             </h2>
-            <button
-              onClick={handleSaveData}
-              className="bg-blue-500 text-white px-4 py-2 rounded-md flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" /> Save Data
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Last Updated Time Display */}
+              <p className="text-sm text-gray-500">
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </p>
+              <button
+                onClick={handleSaveData}
+                className="bg-blue-500 text-white px-4 py-2 rounded-md flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" /> Save Data
+              </button>
+              {/* Refresh Button with Timer Dropdown */}
+              <div className="relative">
+                <button
+                  className="bg-gray-500 text-white px-4 py-2 rounded-md flex items-center gap-2"
+                  onClick={refreshData} // Manual refresh
+                >
+                  <RefreshCw className="h-4 w-4" /> Refresh
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Server Info */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {/* Server Info */}
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
                 <Server className="h-4 w-4" /> Name
